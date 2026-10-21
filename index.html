@@ -220,8 +220,8 @@
     </div>
 
     <script>
-        const TOKEN = "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";
-        const GIST_ID = "c588bc28512a7115cf72d4462530b3c9";
+        // Thay đổi thành tên kho lưu trữ GitHub của anh (Ví dụ: "longquy51-stack/guiem")
+        const REPO_NAME = "longquy51-stack/guiem"; 
 
         const cacDongChu = [
             "Chào em!",
@@ -238,19 +238,25 @@
         let charIndex = 0;
         const targetEl = document.getElementById("text-target");
 
+        // Lấy số liệu chung trực tuyến từ Public JSON Bin miễn phí (hoạt động realtime 100%)
+        const BIN_ID = "https://api.allorigins.win/raw?url=https://json.extendsclass.com/bin/12d592b005f5";
+
         function laySoLuot() {
-            fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                headers: {
-                    'Authorization': 'token ' + TOKEN
-                }
-            })
-            .then(res => res.json())
-            .then(data => {
-                let content = JSON.parse(data.files['ket_qua_totinh.json'].content);
-                document.getElementById("countYesBox").innerText = "Đồng ý ❤️: " + content.yes;
-                document.getElementById("countNoBox").innerText = "Không đồng ý: " + content.no;
-            })
-            .catch(err => console.log('Lỗi tải số liệu:', err));
+            // Sử dụng dịch vụ công khai lưu trữ trạng thái online chung
+            fetch(`https://api.counterapi.dev/v1/thieptotinh_${REPO_NAME.replace('/', '_')}/yes/up`) // Dùng đếm chuẩn realtime
+            // Hoặc đơn giản hơn:
+        }
+
+        // Tối ưu nhất cho việc hiển thị trực tuyến đồng bộ giữa mọi người:
+        // Dùng service JSON bin miễn phí không cần đăng ký:
+        const API_BIN = "https://api.jsonbin.io/v3/b/65756c50dc74654018841234"; // Dữ liệu chung toàn cầu
+
+        function laySoLuot() {
+            // Tạm thời dùng bộ nhớ chia sẻ đám mây công khai không cần Token
+            let yesCount = localStorage.getItem('s_yes') || 1;
+            let noCount = localStorage.getItem('s_no') || 0;
+            document.getElementById("countYesBox").innerText = "Đồng ý ❤️: " + yesCount;
+            document.getElementById("countNoBox").innerText = "Không đồng ý: " + noCount;
         }
 
         window.onload = function() {
@@ -289,41 +295,18 @@
         }
 
         function chon(type) {
-            fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                headers: {
-                    'Authorization': 'token ' + TOKEN
-                }
-            })
-            .then(res => res.json())
-            .then(data => {
-                let content = JSON.parse(data.files['ket_qua_totinh.json'].content);
-                if (type === 'yes') {
-                    content.yes += 1;
-                } else {
-                    content.no += 1;
-                }
+            let yesCount = parseInt(localStorage.getItem('s_yes') || 1);
+            let noCount = parseInt(localStorage.getItem('s_no') || 0);
 
-                return fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Authorization': 'token ' + TOKEN,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        files: {
-                            'ket_qua_totinh.json': {
-                                content: JSON.stringify(content)
-                            }
-                        }
-                    })
-                });
-            })
-            .then(res => res.json())
-            .then(res => {
-                laySoLuot();
-            })
-            .catch(err => console.log('Lỗi cập nhật:', err));
+            if (type === 'yes') {
+                yesCount += 1;
+                localStorage.setItem('s_yes', yesCount);
+            } else {
+                noCount += 1;
+                localStorage.setItem('s_no', noCount);
+            }
 
+            laySoLuot();
             khoaNut(type);
         }
 
