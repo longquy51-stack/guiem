@@ -116,7 +116,7 @@
         }
 
         .btn-choice {
-            padding: 10px 22px;
+            padding: 12px 22px;
             font-size: 15px;
             font-weight: 600;
             border-radius: 20px;
@@ -124,7 +124,6 @@
             border: none;
             transition: all 0.2s;
             margin: 0 6px;
-            text-decoration: none;
             display: inline-block;
         }
 
@@ -134,18 +133,9 @@
             box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
         }
 
-        .btn-yes:hover {
-            background-color: #d81b60;
-            transform: scale(1.05);
-        }
-
         .btn-no {
             background-color: #e0e0e0;
             color: #616161;
-        }
-
-        .btn-no:hover {
-            background-color: #bdbdbd;
         }
 
         .heart-particle {
@@ -160,6 +150,17 @@
 
         @keyframes fall {
             to { transform: translateY(105vh) rotate(360deg); }
+        }
+
+        #counterBox {
+            margin-top: 15px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #ad1457;
+            background: #f8bbd0;
+            padding: 8px 15px;
+            border-radius: 12px;
+            display: inline-block;
         }
     </style>
 </head>
@@ -180,14 +181,19 @@
             <span id="text-target"></span><span class="cursor" id="cursor"></span>
         </div>
 
-        <div class="choice-container">
-            <p style="margin-bottom: 15px; font-weight: 600; color: #c2185b;">Câu trả lời của em là gì?</p>
-            <a href="https://m.me/the.huy.902?text=Em%20cần%20thêm%20thời%20gian%20anh%20nhé..." target="_blank" class="btn-choice btn-no">Không đồng ý</a>
-            <a href="https://m.me/the.huy.902?text=Em%20đồng%20ý%20nhé!%20❤️" target="_blank" class="btn-choice btn-yes">Đồng ý ❤️</a>
+        <div class="choice-container" id="choiceBox">
+            <p style="margin-bottom: 12px; font-weight: 600; color: #c2185b;">Câu trả lời của em là gì?</p>
+            <button class="btn-choice btn-no" id="btnNo" onclick="chon('no')">Không đồng ý</button>
+            <button class="btn-choice btn-yes" id="btnYes" onclick="chon('yes')">Đồng ý ❤️</button>
+            <br><br>
+            <div id="counterBox">Đang tải số lượt chọn...</div>
         </div>
     </div>
 
     <script>
+        // Tên khóa định danh riêng cho trang của anh
+        const API_KEY = "thiep_to_tinh_dac_biet_2026";
+        
         const cacDongChu = [
             "Chào em!",
             "Anh thấy rất ngại khi viết ra những dòng này, anh cũng muốn được nói trực tiếp với em, nhưng anh thấy em cũng ngại và sợ em cảm thấy khó xử.",
@@ -203,6 +209,30 @@
         let charIndex = 0;
         const targetEl = document.getElementById("text-target");
 
+        // Lấy số lượt tích hiện tại khi trang mở ra
+        function laySoLuot() {
+            let count = localStorage.getItem('global_yes_count') || 0;
+            document.getElementById("counterBox").innerText = "Đã có " + count + " người bấm Đồng ý ❤️";
+        }
+
+        window.onload = function() {
+            laySoLuot();
+            const savedChoice = localStorage.getItem('cau_tra_loi');
+            if (savedChoice) {
+                document.getElementById("openBtn").style.display = "none";
+                document.getElementById("icon").innerText = "💌";
+                document.getElementById("title").innerText = "Gửi Em ❤️";
+                document.getElementById("letter").style.display = "block";
+                
+                let fullText = cacDongChu.join("\n\n");
+                targetEl.innerText = fullText;
+                document.getElementById("cursor").style.display = "none";
+                document.getElementById("choiceBox").style.display = "block";
+                
+                khoaNut(savedChoice);
+            }
+        }
+
         function moThiep() {
             document.getElementById("openBtn").style.display = "none";
             document.getElementById("icon").innerText = "💌";
@@ -210,9 +240,7 @@
             document.getElementById("letter").style.display = "block";
             
             const music = document.getElementById("bgMusic");
-            music.play().catch(error => {
-                console.log("Phát nhạc bị chặn:", error);
-            });
+            music.play().catch(error => console.log(error));
 
             goChu();
         }
@@ -232,7 +260,37 @@
                 }
             } else {
                 document.getElementById("cursor").style.display = "none";
-                document.querySelector(".choice-container").style.display = "block";
+                document.getElementById("choiceBox").style.display = "block";
+            }
+        }
+
+        function chon(type) {
+            if (type === 'yes') {
+                let currentCount = parseInt(localStorage.getItem('global_yes_count') || "0");
+                currentCount += 1;
+                localStorage.setItem('global_yes_count', currentCount);
+                document.getElementById("counterBox").innerText = "Đã có " + currentCount + " người bấm Đồng ý ❤️";
+            }
+
+            localStorage.setItem('cau_tra_loi', type);
+            khoaNut(type);
+        }
+
+        function khoaNut(type) {
+            const btnYes = document.getElementById("btnYes");
+            const btnNo = document.getElementById("btnNo");
+
+            btnYes.disabled = true;
+            btnNo.disabled = true;
+
+            if (type === 'yes') {
+                btnYes.innerHTML = "✅ Đồng ý ❤️ (Đã chọn)";
+                btnYes.style.background = "#ad1457";
+                btnNo.style.opacity = "0.4";
+            } else {
+                btnNo.innerHTML = "✅ Không đồng ý (Đã chọn)";
+                btnNo.style.background = "#9e9e9e";
+                btnYes.style.opacity = "0.4";
             }
         }
 
