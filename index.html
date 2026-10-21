@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gửi Em</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 100%);
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .card-container {
+            background: rgba(255, 255, 255, 0.95);
+            width: 100%;
+            max-width: 480px;
+            padding: 35px 25px;
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(216, 27, 96, 0.15);
+            text-align: center;
+            position: relative;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+
+        .envelope-icon {
+            font-size: 55px;
+            margin-bottom: 10px;
+            display: inline-block;
+            animation: float 3s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        h2 {
+            color: #c2185b;
+            margin-bottom: 25px;
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .btn-open {
+            background: linear-gradient(135deg, #e91e63, #f48fb1);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(233, 30, 99, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-open:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(233, 30, 99, 0.4);
+        }
+
+        .letter-content {
+            display: none;
+            text-align: left;
+            font-size: 16px;
+            line-height: 1.8;
+            color: #37474f;
+            background: #fff0f5;
+            padding: 22px;
+            border-radius: 16px;
+            border-left: 4px solid #ec407a;
+            white-space: pre-line;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
+            margin-bottom: 20px;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 2px;
+            height: 18px;
+            background-color: #ec407a;
+            vertical-align: middle;
+            animation: blink 0.8s infinite;
+            margin-left: 2px;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        /* Khung 2 nút lựa chọn cuối thư */
+        .choice-container {
+            display: none;
+            margin-top: 20px;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .btn-choice {
+            padding: 10px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 20px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            margin: 0 8px;
+        }
+
+        .btn-yes {
+            background-color: #e91e63;
+            color: white;
+            box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
+        }
+
+        .btn-yes:hover {
+            background-color: #d81b60;
+            transform: scale(1.05);
+        }
+
+        .btn-no {
+            background-color: #e0e0e0;
+            color: #616161;
+        }
+
+        .btn-no:hover {
+            background-color: #bdbdbd;
+        }
+
+        .heart-particle {
+            position: fixed;
+            top: -10%;
+            color: #f48fb1;
+            user-select: none;
+            pointer-events: none;
+            z-index: 1;
+            animation: fall linear infinite;
+        }
+
+        @keyframes fall {
+            to { transform: translateY(105vh) rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Thẻ phát nhạc ẩn -->
+    <audio id="bgMusic" loop>
+        <source src="nhac.mp3" type="audio/mpeg">
+        Trình duyệt của bạn không hỗ trợ phát âm thanh.
+    </audio>
+
+    <div class="card-container">
+        <div class="envelope-icon" id="icon">✉️</div>
+        <h2 id="title">Anh có điều này muốn gửi đến em...</h2>
+        
+        <button class="btn-open" id="openBtn" onclick="moThiep()">Mở thư</button>
+
+        <div class="letter-content" id="letter">
+            <span id="text-target"></span><span class="cursor" id="cursor"></span>
+        </div>
+
+        <!-- Form gửi phản hồi về Mail -->
+        <form id="responseForm" action="https://formspree.io/f/example" method="POST" class="choice-container">
+            <input type="hidden" name="Phan_Hoi" id="inputPhanHoi" value="">
+            <p style="margin-bottom: 12px; font-weight: 600; color: #c2185b;">Câu trả lời của em là gì?</p>
+            <button type="button" class="btn-choice btn-no" onclick="guiPhanHoi('Không đồng ý 😢')">Không đồng ý</button>
+            <button type="button" class="btn-choice btn-yes" onclick="guiPhanHoi('Đồng ý ❤️')">Đồng ý ❤️</button>
+        </form>
+    </div>
+
+    <script>
+        const cacDongChu = [
+            "Chào em!",
+            "Anh thấy rất ngại khi viết ra những dòng này, anh cũng muốn được nói trực tiếp với em, nhưng anh thấy em cũng ngại và sợ em cảm thấy khó xử.",
+            "Nhưng nếu không nói ra, anh sợ mình sẽ mất đi một cơ hội có thể ở cạnh em.",
+            "Cơ hội để được quan tâm chăm sóc cho em, cơ hội để được làm một bến đỗ an toàn cho em.",
+            "Tuy chưa gặp nhau nhiều, nhưng anh nhận thấy em là một cô gái tuyệt vời.",
+            "Anh ăn nói kém, không được tốt, không được khéo, cũng không dám hứa hẹn những điều xa xôi.",
+            "Nhưng việc muốn làm quen với em là hoàn toàn nghiêm túc và chân thành.",
+            "Em có thể cho anh một cơ hội được không? ❤️"
+        ];
+
+        let lineIndex = 0;
+        let charIndex = 0;
+        const targetEl = document.getElementById("text-target");
+
+        function moThiep() {
+            document.getElementById("openBtn").style.display = "none";
+            document.getElementById("icon").innerText = "💌";
+            document.getElementById("title").innerText = "Gửi Em ❤️";
+            document.getElementById("letter").style.display = "block";
+            
+            // Phát nhạc nền khi bấm mở thư
+            const music = document.getElementById("bgMusic");
+            music.play().catch(error => {
+                console.log("Phát nhạc bị chặn hoặc có lỗi:", error);
+            });
+
+            goChu();
+        }
+
+        function goChu() {
+            if (lineIndex < cacDongChu.length) {
+                let currentLine = cacDongChu[lineIndex];
+                if (charIndex < currentLine.length) {
+                    targetEl.innerHTML += currentLine.charAt(charIndex);
+                    charIndex++;
+                    setTimeout(goChu, 40);
+                } else {
+                    targetEl.innerHTML += "\n\n";
+                    lineIndex++;
+                    charIndex = 0;
+                    setTimeout(goChu, 600);
+                }
+            } else {
+                document.getElementById("cursor").style.display = "none";
+                document.querySelector(".choice-container").style.display = "block";
+            }
+        }
+
+        function guiPhanHoi(cauTraLoi) {
+            document.getElementById("inputPhanHoi").value = cauTraLoi;
+            
+            const form = document.getElementById("responseForm");
+            const formData = new FormData(form);
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: { 'Accept': 'json' }
+            }).then(response => {
+                if (response.ok) {
+                    if (cauTraLoi.includes("Đồng ý")) {
+                        alert("Cảm ơn em! Phản hồi đã được gửi tới anh. ❤️");
+                    } else {
+                        alert("Cảm ơn em đã chia sẻ thật lòng với anh.");
+                    }
+                    location.reload();
+                } else {
+                    alert("Cảm ơn em!");
+                    location.reload();
+                }
+            }).catch(error => {
+                alert("Đã gửi phản hồi!");
+                location.reload();
+            });
+        }
+
+        function createHeart() {
+            const heart = document.createElement('div');
+            heart.classList.add('heart-particle');
+            heart.innerHTML = '🌸';
+            heart.style.left = Math.random() * 100 + 'vw';
+            heart.style.animationDuration = Math.random() * 3 + 5 + 's';
+            heart.style.fontSize = Math.random() * 10 + 12 + 'px';
+            heart.style.opacity = Math.random() * 0.7 + 0.3;
+            document.body.appendChild(heart);
+            setTimeout(() => { heart.remove(); }, 8000);
+        }
+        setInterval(createHeart, 600);
+    </script>
+</body>
+</html>
