@@ -213,8 +213,8 @@
             <p id="notifyText"></p>
 
             <div class="counter-wrapper">
-                <div class="counter-badge badge-yes" id="countYesBox">Đồng ý ❤️: 0</div>
-                <div class="counter-badge badge-no" id="countNoBox">Không đồng ý: 0</div>
+                <div class="counter-badge badge-yes" id="countYesBox">Đồng ý ❤️: ...</div>
+                <div class="counter-badge badge-no" id="countNoBox">Không đồng ý: ...</div>
             </div>
         </div>
     </div>
@@ -228,18 +228,36 @@
             "Tuy chưa gặp nhau nhiều, nhưng anh nhận thấy em là một cô gái tuyệt vời.",
             "Anh ăn nói kém, không được tốt, không được khéo, cũng không dám hứa hẹn những điều xa xôi.",
             "Nhưng việc muốn làm quen với em là hoàn toàn nghiêm túc và chân thành.",
-            "Em me có thể cho anh một cơ hội được không? ❤️"
+            "Em có thể cho anh một cơ hội được không? ❤️"
         ];
 
         let lineIndex = 0;
         let charIndex = 0;
         const targetEl = document.getElementById("text-target");
 
+        // Sử dụng API đếm trực tuyến toàn cầu (không phụ thuộc thiết bị)
+        const NAMESPACE = "thieptotinh_duc2026";
+        
         function laySoLuot() {
-            let yesCount = localStorage.getItem('global_yes_count') || 0;
-            let noCount = localStorage.getItem('global_no_count') || 0;
-            document.getElementById("countYesBox").innerText = "Đồng ý ❤️: " + yesCount;
-            document.getElementById("countNoBox").innerText = "Không đồng ý: " + noCount;
+            // Lấy số Đồng ý
+            fetch(`https://api.countapi.xyz/get/${NAMESPACE}/yes`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("countYesBox").innerText = "Đồng ý ❤️: " + data.value;
+                })
+                .catch(err => {
+                    document.getElementById("countYesBox").innerText = "Đồng ý ❤️: 0";
+                });
+
+            // Lấy số Không đồng ý
+            fetch(`https://api.countapi.xyz/get/${NAMESPACE}/no`)
+                .then(res => res.json())
+                .then(data => {
+                    document.getElementById("countNoBox").innerText = "Không đồng ý: " + data.value;
+                })
+                .catch(err => {
+                    document.getElementById("countNoBox").innerText = "Không đồng ý: 0";
+                });
         }
 
         window.onload = function() {
@@ -278,17 +296,16 @@
         }
 
         function chon(type) {
-            if (type === 'yes') {
-                let count = parseInt(localStorage.getItem('global_yes_count') || "0");
-                count += 1;
-                localStorage.setItem('global_yes_count', count);
-            } else if (type === 'no') {
-                let count = parseInt(localStorage.getItem('global_no_count') || "0");
-                count += 1;
-                localStorage.setItem('global_no_count', count);
-            }
+            let endpoint = (type === 'yes') ? 'hit/' + NAMESPACE + '/yes' : 'hit/' + NAMESPACE + '/no';
+            
+            // Gửi tín hiệu cộng +1 lên đám mây trực tuyến ngay lập tức
+            fetch(`https://api.countapi.xyz/${endpoint}`)
+                .then(res => res.json())
+                .then(data => {
+                    laySoLuot();
+                })
+                .catch(err => console.log(err));
 
-            laySoLuot();
             khoaNut(type);
         }
 
@@ -304,7 +321,7 @@
                 btnYes.innerHTML = "✅ Đồng ý ❤️";
                 btnYes.style.background = "#ad1457";
                 btnNo.style.opacity = "0.4";
-                notify.innerHTML = "Cảm ơn em vì đã đồng ý! ❤️ Chúc hai người một khởi đầu thật đẹp.";
+                notify.innerHTML = "Cảm ơn em vì đã đồng ý! ❤️";
             } else {
                 btnNo.innerHTML = "✅ Không đồng ý";
                 btnNo.style.background = "#9e9e9e";
