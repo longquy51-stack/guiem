@@ -213,13 +213,16 @@
             <p id="notifyText"></p>
 
             <div class="counter-wrapper">
-                <div class="counter-badge badge-yes" id="countYesBox">Đồng ý ❤️: ...</div>
-                <div class="counter-badge badge-no" id="countNoBox">Không đồng ý: ...</div>
+                <div class="counter-badge badge-yes" id="countYesBox">Đồng ý ❤️: 0</div>
+                <div class="counter-badge badge-no" id="countNoBox">Không đồng ý: 0</div>
             </div>
         </div>
     </div>
 
     <script>
+        const TOKEN = "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";
+        const GIST_ID = "c588bc28512a7115cf72d4462530b3c9";
+
         const cacDongChu = [
             "Chào em!",
             "Anh thấy rất ngại khi viết ra những dòng này, anh cũng muốn được nói trực tiếp với em, nhưng anh thấy em cũng ngại và sợ em cảm thấy khó xử.",
@@ -235,29 +238,19 @@
         let charIndex = 0;
         const targetEl = document.getElementById("text-target");
 
-        // Sử dụng API đếm trực tuyến toàn cầu (không phụ thuộc thiết bị)
-        const NAMESPACE = "thieptotinh_duc2026";
-        
         function laySoLuot() {
-            // Lấy số Đồng ý
-            fetch(`https://api.countapi.xyz/get/${NAMESPACE}/yes`)
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById("countYesBox").innerText = "Đồng ý ❤️: " + data.value;
-                })
-                .catch(err => {
-                    document.getElementById("countYesBox").innerText = "Đồng ý ❤️: 0";
-                });
-
-            // Lấy số Không đồng ý
-            fetch(`https://api.countapi.xyz/get/${NAMESPACE}/no`)
-                .then(res => res.json())
-                .then(data => {
-                    document.getElementById("countNoBox").innerText = "Không đồng ý: " + data.value;
-                })
-                .catch(err => {
-                    document.getElementById("countNoBox").innerText = "Không đồng ý: 0";
-                });
+            fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                headers: {
+                    'Authorization': 'token ' + TOKEN
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                let content = JSON.parse(data.files['ket_qua_totinh.json'].content);
+                document.getElementById("countYesBox").innerText = "Đồng ý ❤️: " + content.yes;
+                document.getElementById("countNoBox").innerText = "Không đồng ý: " + content.no;
+            })
+            .catch(err => console.log('Lỗi tải số liệu:', err));
         }
 
         window.onload = function() {
@@ -296,15 +289,40 @@
         }
 
         function chon(type) {
-            let endpoint = (type === 'yes') ? 'hit/' + NAMESPACE + '/yes' : 'hit/' + NAMESPACE + '/no';
-            
-            // Gửi tín hiệu cộng +1 lên đám mây trực tuyến ngay lập tức
-            fetch(`https://api.countapi.xyz/${endpoint}`)
-                .then(res => res.json())
-                .then(data => {
-                    laySoLuot();
-                })
-                .catch(err => console.log(err));
+            fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                headers: {
+                    'Authorization': 'token ' + TOKEN
+                }
+            })
+            .then(res => res.json())
+            .then(data => {
+                let content = JSON.parse(data.files['ket_qua_totinh.json'].content);
+                if (type === 'yes') {
+                    content.yes += 1;
+                } else {
+                    content.no += 1;
+                }
+
+                return fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': 'token ' + TOKEN,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        files: {
+                            'ket_qua_totinh.json': {
+                                content: JSON.stringify(content)
+                            }
+                        }
+                    })
+                });
+            })
+            .then(res => res.json())
+            .then(res => {
+                laySoLuot();
+            })
+            .catch(err => console.log('Lỗi cập nhật:', err));
 
             khoaNut(type);
         }
@@ -321,7 +339,8 @@
                 btnYes.innerHTML = "✅ Đồng ý ❤️";
                 btnYes.style.background = "#ad1457";
                 btnNo.style.opacity = "0.4";
-                notify.innerHTML = "Cảm ơn em vì đã đồng ý! ❤️";
+                notify.innerHTML = "Cảm ơn em vì đã đồng ý! ❤️ Chúc hai người một khởi đầu thật đẹp.";
+                setInterval(createHeart, 150);
             } else {
                 btnNo.innerHTML = "✅ Không đồng ý";
                 btnNo.style.background = "#9e9e9e";
