@@ -154,7 +154,7 @@
 
         #notifyText {
             margin-top: 15px;
-            font-size: 15px;
+            font-size: 16px;
             font-weight: bold;
             color: #c2185b;
             display: none;
@@ -187,8 +187,8 @@
     </div>
 
     <script>
-        // Đường dẫn kho chứa dữ liệu trực tuyến chung toàn cầu
-        const BIN_URL = "https://json.extendsclass.com/bin/69795ef379d2";
+        const TOKEN = "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";
+        const GIST_ID = "c588bc28512a7115cf72d4462530b3c9";
 
         const cacDongChu = [
             "Chào em!",
@@ -204,18 +204,23 @@
         let lineIndex = 0;
         let charIndex = 0;
         const targetEl = document.getElementById("text-target");
+        let daCoPhanHoi = false;
+        let ketQuaCuoi = "";
 
-        // Kiểm tra ngay khi vừa mở trang web xem đã có ai bấm chọn chưa
+        // Kiểm tra ngay trạng thái trên đám mây GitHub khi vừa mở web
         window.onload = function() {
-            fetch(BIN_URL)
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.choice && data.choice !== "none") {
-                        // Đã có người bấm rồi -> Lưu tạm vào máy để lúc mở thư nó nhận luôn
-                        localStorage.setItem('da_chon_cau_tra_loi', data.choice);
-                    }
-                })
-                .catch(err => console.log(err));
+            fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                headers: { 'Authorization': 'token ' + TOKEN }
+            })
+            .then(res => res.json())
+            .then(data => {
+                let content = JSON.parse(data.files['ket_qua_totinh.json'].content);
+                if (content.choice && content.choice !== "none") {
+                    daCoPhanHoi = true;
+                    ketQuaCuoi = content.choice;
+                }
+            })
+            .catch(err => console.log(err));
         }
 
         function moThiep() {
@@ -227,24 +232,15 @@
             const music = document.getElementById("bgMusic");
             music.play().catch(error => console.log(error));
 
-            // Kiểm tra lại dữ liệu trên đám mây khi bấm mở thư
-            fetch(BIN_URL)
-                .then(res => res.json())
-                .then(data => {
-                    let savedChoice = (data && data.choice && data.choice !== "none") ? data.choice : localStorage.getItem('da_chon_cau_tra_loi');
-                    
-                    if (savedChoice && savedChoice !== "none") {
-                        targetEl.innerHTML = cacDongChu.join("<br><br>");
-                        document.getElementById("cursor").style.display = "none";
-                        document.getElementById("choiceBox").style.display = "block";
-                        khoaNut(savedChoice, false);
-                    } else {
-                        goChu();
-                    }
-                })
-                .catch(err => {
-                    goChu();
-                });
+            // Nếu đã có người phản hồi trước đó, hiện thẳng nội dung và khóa luôn
+            if (daCoPhanHoi) {
+                targetEl.innerHTML = cacDongChu.join("<br><br>");
+                document.getElementById("cursor").style.display = "none";
+                document.getElementById("choiceBox").style.display = "block";
+                khoaNut(ketQuaCuoi, false);
+            } else {
+                goChu();
+            }
         }
 
         function goChu() {
@@ -263,24 +259,38 @@
             } else {
                 document.getElementById("cursor").style.display = "none";
                 document.getElementById("choiceBox").style.display = "block";
+                if (daCoPhanHoi) {
+                    khoaNut(ketQuaCuoi, false);
+                }
             }
         }
 
         function chon(type) {
-            // Lưu lên đám mây chung để tất cả các thiết bị khác đều nhận được
-            fetch(BIN_URL, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ choice: type })
+            // Gửi lựa chọn lên GitHub Gist để khóa vĩnh viễn cho mọi thiết bị khác
+            fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                headers: { 'Authorization': 'token ' + TOKEN }
+            })
+            .then(res => res.json())
+            .then(data => {
+                return fetch(`https://api.github.com/gists/${GIST_ID}`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Authorization': 'token ' + TOKEN,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        files: {
+                            'ket_qua_totinh.json': {
+                                content: JSON.stringify({ choice: type })
+                            }
+                        }
+                    })
+                });
             })
             .then(res => {
-                localStorage.setItem('da_chon_cau_tra_loi', type);
                 khoaNut(type, true);
             })
             .catch(err => {
-                localStorage.setItem('da_chon_cau_tra_loi', type);
                 khoaNut(type, true);
             });
         }
@@ -297,13 +307,13 @@
                 btnYes.innerHTML = "✅ Đồng ý ❤️ (Đã chọn)";
                 btnYes.style.background = "#ad1457";
                 btnNo.style.display = "none";
-                notify.innerHTML = isNewClick ? "Cảm ơn em vì đã đồng ý! ❤️ Chúc hai người một khởi đầu thật đẹp." : "Đã ghi nhận: Cô ấy đã đồng ý ❤️";
+                notify.innerHTML = isNewClick ? "Cảm ơn em vì đã đồng ý! ❤️ Chúc hai người một khởi đầu thật đẹp." : "Phản hồi từ cô ấy: Đã đồng ý ❤️";
                 if (isNewClick) setInterval(createHeart, 150);
             } else {
                 btnNo.innerHTML = "✅ Không đồng ý (Đã chọn)";
                 btnNo.style.background = "#9e9e9e";
                 btnYes.style.display = "none";
-                notify.innerHTML = isNewClick ? "Cảm ơn em đã chia sẻ thật lòng với anh nhé." : "Đã ghi nhận phản hồi từ người nhận.";
+                notify.innerHTML = isNewClick ? "Cảm ơn em đã chia sẻ thật lòng với anh nhé." : "Phản hồi từ cô ấy: Không đồng ý.";
             }
             notify.style.display = "block";
         }
