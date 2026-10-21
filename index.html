@@ -104,7 +104,6 @@
             50% { opacity: 0; }
         }
 
-        /* Khung 2 nút lựa chọn cuối thư */
         .choice-container {
             display: none;
             margin-top: 20px;
@@ -164,7 +163,6 @@
 </head>
 <body>
 
-    <!-- Thẻ phát nhạc ẩn -->
     <audio id="bgMusic" loop>
         <source src="nhac.mp3" type="audio/mpeg">
         Trình duyệt của bạn không hỗ trợ phát âm thanh.
@@ -180,8 +178,7 @@
             <span id="text-target"></span><span class="cursor" id="cursor"></span>
         </div>
 
-        <!-- Form gửi phản hồi về Mail -->
-        <form id="responseForm" action="https://formspree.io/f/example" method="POST" class="choice-container">
+        <form id="responseForm" action="https://formspree.io/f/meaebrkl" method="POST" class="choice-container">
             <input type="hidden" name="Phan_Hoi" id="inputPhanHoi" value="">
             <p style="margin-bottom: 12px; font-weight: 600; color: #c2185b;">Câu trả lời của em là gì?</p>
             <button type="button" class="btn-choice btn-no" onclick="guiPhanHoi('Không đồng ý 😢')">Không đồng ý</button>
@@ -211,10 +208,9 @@
             document.getElementById("title").innerText = "Gửi Em ❤️";
             document.getElementById("letter").style.display = "block";
             
-            // Phát nhạc nền khi bấm mở thư
             const music = document.getElementById("bgMusic");
             music.play().catch(error => {
-                console.log("Phát nhạc bị chặn hoặc có lỗi:", error);
+                console.log("Phát nhạc bị chặn:", error);
             });
 
             goChu();
@@ -248,7 +244,7 @@
             fetch(form.action, {
                 method: 'POST',
                 body: formData,
-                headers: { 'Accept': 'json' }
+                headers: { 'Accept': 'application/json' }
             }).then(response => {
                 if (response.ok) {
                     if (cauTraLoi.includes("Đồng ý")) {
@@ -258,11 +254,11 @@
                     }
                     location.reload();
                 } else {
-                    alert("Cảm ơn em!");
+                    alert("Đã gửi phản hồi thành công tới anh!");
                     location.reload();
                 }
             }).catch(error => {
-                alert("Đã gửi phản hồi!");
+                alert("Đã ghi nhận phản hồi của em!");
                 location.reload();
             });
         }
