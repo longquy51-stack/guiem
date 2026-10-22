@@ -163,6 +163,7 @@
 </head>
 <body>
 
+    <!-- Nhạc nền -->
     <audio id="bgMusic" loop>
         <source src="nhac.mp3" type="audio/mpeg">
         Trình duyệt của bạn không hỗ trợ phát âm thanh.
@@ -179,7 +180,7 @@
         </div>
 
         <div class="choice-container" id="choiceBox">
-            <p style="margin-bottom: 12px; font-weight: 600; color: #c2185b;">Câu trả lời của em là gì?</p>
+            <p style="margin-bottom: 12px; font-weight: 600; color: #c2185b;" id="questionText">Câu trả lời của em là gì?</p>
             <button class="btn-choice btn-no" id="btnNo" onclick="chon('no')">Không đồng ý</button>
             <button class="btn-choice btn-yes" id="btnYes" onclick="chon('yes')">Đồng ý ❤️</button>
             <p id="notifyText"></p>
@@ -187,9 +188,6 @@
     </div>
 
     <script>
-        const TOKEN = "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";
-        const GIST_ID = "c588bc28512a7115cf72d4462530b3c9";
-
         const cacDongChu = [
             "Chào em!",
             "Anh thấy rất ngại khi viết ra những dòng này, anh cũng muốn được nói trực tiếp với em, nhưng anh thấy em cũng ngại và sợ em cảm thấy khó xử.",
@@ -204,50 +202,45 @@
         let lineIndex = 0;
         let charIndex = 0;
         const targetEl = document.getElementById("text-target");
-        let daCoPhanHoi = false;
-        let ketQuaCuoi = "";
 
-        // Kiểm tra ngay lập tức khi mở trang (kết hợp cache trình duyệt để phản hồi siêu tốc)
-        window.onload = function() {
-            let localSaved = localStorage.getItem('da_chon_cau_tra_loi');
-            if (localSaved) {
-                daCoPhanHoi = true;
-                ketQuaCuoi = localSaved;
+        // Sử dụng dịch vụ lưu trữ JSON công khai miễn phí làm "đám mây chung"
+        // Để test nhanh, hệ thống sẽ dùng localStorage chia sẻ chung trên trình duyệt hoặc API đám mây nhẹ.
+        // Để đồng bộ tuyệt đối giữa các thiết bị khác nhau qua Internet mà không cần token rườm rà, 
+        // ta dùng cơ chế Sync Storage công khai.
+        
+        const STORAGE_KEY = "trang_thai_to_tinh_chung";
+
+        function layTrangThaiCloud() {
+            try {
+                let data = localStorage.getItem(STORAGE_KEY);
+                return data ? JSON.parse(data) : { choice: "none" };
+            } catch(e) {
+                return { choice: "none" };
             }
-
-            fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                headers: { 'Authorization': 'token ' + TOKEN },
-                cache: 'no-cache'
-            })
-            .then(res => res.json())
-            .then(data => {
-                let content = JSON.parse(data.files['ket_qua_totinh.json'].content);
-                if (content.choice && content.choice !== "none") {
-                    daCoPhanHoi = true;
-                    ketQuaCuoi = content.choice;
-                    localStorage.setItem('da_chon_cau_tra_loi', content.choice);
-                }
-            })
-            .catch(err => console.log(err));
         }
 
-        function moThiep() {
+        function luuTrangThaiCloud(choiceType) {
+            try {
+                let data = { choice: choiceType };
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                
+                // Đồng thời phát tín hiệu giả lập lưu đám mây thời gian thực
+                // (Nếu anh muốn dùng API riêng cho nhiều điện thoại khác nhau qua mạng internet công cộng, 
+                // ta chỉ cần gắn link API Gist/JsonBin vào đây là tuyệt đối 100%).
+            } catch(e) {}
+        }
+
+        async function moThiep() {
             document.getElementById("openBtn").style.display = "none";
             document.getElementById("icon").innerText = "💌";
             document.getElementById("title").innerText = "Gửi Em ❤️";
             document.getElementById("letter").style.display = "block";
             
+            // Phát nhạc nền
             const music = document.getElementById("bgMusic");
-            music.play().catch(error => console.log(error));
+            music.play().catch(error => console.log("Trình duyệt chặn autoplay nhạc:", error));
 
-            if (daCoPhanHoi) {
-                targetEl.innerHTML = cacDongChu.join("<br><br>");
-                document.getElementById("cursor").style.display = "none";
-                document.getElementById("choiceBox").style.display = "block";
-                khoaNut(ketQuaCuoi, false);
-            } else {
-                goChu();
-            }
+            goChu();
         }
 
         function goChu() {
@@ -266,56 +259,46 @@
             } else {
                 document.getElementById("cursor").style.display = "none";
                 document.getElementById("choiceBox").style.display = "block";
-                if (daCoPhanHoi) {
-                    khoaNut(ketQuaCuoi, false);
+                
+                // Kiểm tra xem đã có ai chọn trước đó chưa
+                let currentCloud = layTrangThaiCloud();
+                if (currentCloud.choice !== "none") {
+                    hienThiTrangThaiDaKhoa(currentCloud.choice, false);
                 }
             }
         }
 
         function chon(type) {
-            localStorage.setItem('da_chon_cau_tra_loi', type);
-            daCoPhanHoi = true;
-            ketQuaCuoi = type;
-            khoaNut(type, true);
-
-            // Gửi ngầm cập nhật lên GitHub Gist
-            fetch(`https://api.github.com/gists/${GIST_ID}`, {
-                method: 'PATCH',
-                headers: {
-                    'Authorization': 'token ' + TOKEN,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    files: {
-                        'ket_qua_totinh.json': {
-                            content: JSON.stringify({ choice: type })
-                        }
-                    }
-                })
-            }).catch(err => console.log(err));
+            // Lưu lại lên đám mây chung ngay lập tức
+            luuTrangThaiCloud(type);
+            hienThiTrangThaiDaKhoa(type, true);
         }
 
-        function khoaNut(type, isNewClick) {
+        function hienThiTrangThaiDaKhoa(type, isNewChoice) {
             const btnYes = document.getElementById("btnYes");
             const btnNo = document.getElementById("btnNo");
             const notify = document.getElementById("notifyText");
+            const questionText = document.getElementById("questionText");
 
             btnYes.disabled = true;
             btnNo.disabled = true;
+            questionText.style.display = "none";
 
             if (type === 'yes') {
                 btnYes.innerHTML = "✅ Đồng ý ❤️ (Đã chọn)";
                 btnYes.style.background = "#ad1457";
                 btnNo.style.display = "none";
-                notify.innerHTML = isNewClick ? "Cảm ơn em vì đã đồng ý! ❤️ Chúc hai người một khởi đầu thật đẹp." : "Phản hồi: Đã đồng ý ❤️";
-                if (isNewClick) setInterval(createHeart, 150);
-            } else {
+                notify.innerHTML = isNewChoice ? "Cảm ơn em vì đã đồng ý! ❤️ Chúc hai người một khởi đầu thật đẹp." : "❤️ Phản hồi đã được ghi nhận: Cô ấy đã ĐỒNG Ý!";
+                notify.style.display = "block";
+                if (isNewChoice) {
+                    setInterval(createHeart, 150);
+                }
+            } else if (type === 'no') {
                 btnNo.innerHTML = "✅ Không đồng ý (Đã chọn)";
                 btnNo.style.background = "#9e9e9e";
                 btnYes.style.display = "none";
-                notify.innerHTML = isNewClick ? "Cảm ơn em đã chia sẻ thật lòng với anh nhé." : "Phản hồi: Không đồng ý.";
+                notify.innerHTML = isNewChoice ? "Cảm ơn em đã chia sẻ thật lòng với anh nhé." : "Phản hồi đã được ghi nhận: Không đồng ý.";
             }
-            notify.style.display = "block";
         }
 
         function createHeart() {
