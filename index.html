@@ -188,6 +188,9 @@
     </div>
 
     <script>
+        // DÁN ĐƯỜNG LINK NPOINT.IO CỦA ANH VÀO ĐÂY:
+        const API_URL = "https://api.npoint.io/76ab04a9b4730fff388b";
+
         const cacDongChu = [
             "Chào em!",
             "Anh thấy rất ngại khi viết ra những dòng này, anh cũng muốn được nói trực tiếp với em, nhưng anh thấy em cũng ngại và sợ em cảm thấy khó xử.",
@@ -202,32 +205,32 @@
         let lineIndex = 0;
         let charIndex = 0;
         const targetEl = document.getElementById("text-target");
+        let trangThaiDamMay = "none";
 
-        // Sử dụng dịch vụ lưu trữ JSON công khai miễn phí làm "đám mây chung"
-        // Để test nhanh, hệ thống sẽ dùng localStorage chia sẻ chung trên trình duyệt hoặc API đám mây nhẹ.
-        // Để đồng bộ tuyệt đối giữa các thiết bị khác nhau qua Internet mà không cần token rườm rà, 
-        // ta dùng cơ chế Sync Storage công khai.
-        
-        const STORAGE_KEY = "trang_thai_to_tinh_chung";
-
-        function layTrangThaiCloud() {
+        // Tự động kiểm tra trạng thái từ đám mây npoint
+        async function kiemTraTrangThai() {
             try {
-                let data = localStorage.getItem(STORAGE_KEY);
-                return data ? JSON.parse(data) : { choice: "none" };
+                let res = await fetch(API_URL + "?t=" + new Date().getTime(), { cache: 'no-store' });
+                let data = await res.json();
+                if (data && data.choice) {
+                    trangThaiDamMay = data.choice;
+                }
             } catch(e) {
-                return { choice: "none" };
+                console.log("Lỗi tải dữ liệu:", e);
             }
         }
 
-        function luuTrangThaiCloud(choiceType) {
+        // Tự động lưu lựa chọn lên đám mây npoint
+        async function luuTrangThai(choiceType) {
             try {
-                let data = { choice: choiceType };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-                
-                // Đồng thời phát tín hiệu giả lập lưu đám mây thời gian thực
-                // (Nếu anh muốn dùng API riêng cho nhiều điện thoại khác nhau qua mạng internet công cộng, 
-                // ta chỉ cần gắn link API Gist/JsonBin vào đây là tuyệt đối 100%).
-            } catch(e) {}
+                await fetch(API_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ choice: choiceType })
+                });
+            } catch(e) {
+                console.log("Lỗi lưu dữ liệu:", e);
+            }
         }
 
         async function moThiep() {
@@ -236,11 +239,21 @@
             document.getElementById("title").innerText = "Gửi Em ❤️";
             document.getElementById("letter").style.display = "block";
             
-            // Phát nhạc nền
             const music = document.getElementById("bgMusic");
-            music.play().catch(error => console.log("Trình duyệt chặn autoplay nhạc:", error));
+            music.play().catch(error => console.log(error));
 
-            goChu();
+            // Kiểm tra đám mây trước khi chạy chữ
+            await kiemTraTrangThai();
+
+            if (trangThaiDamMay !== "none") {
+                // Nếu đã có người chọn trước đó, hiện thẳng chữ và khóa nút luôn
+                targetEl.innerHTML = cacDongChu.join("<br><br>");
+                document.getElementById("cursor").style.display = "none";
+                document.getElementById("choiceBox").style.display = "block";
+                khoaNutGiaoDien(trangThaiDamMay, false);
+            } else {
+                goChu();
+            }
         }
 
         function goChu() {
@@ -259,22 +272,19 @@
             } else {
                 document.getElementById("cursor").style.display = "none";
                 document.getElementById("choiceBox").style.display = "block";
-                
-                // Kiểm tra xem đã có ai chọn trước đó chưa
-                let currentCloud = layTrangThaiCloud();
-                if (currentCloud.choice !== "none") {
-                    hienThiTrangThaiDaKhoa(currentCloud.choice, false);
+                if (trangThaiDamMay !== "none") {
+                    khoaNutGiaoDien(trangThaiDamMay, false);
                 }
             }
         }
 
-        function chon(type) {
-            // Lưu lại lên đám mây chung ngay lập tức
-            luuTrangThaiCloud(type);
-            hienThiTrangThaiDaKhoa(type, true);
+        async function chon(type) {
+            trangThaiDamMay = type;
+            khoaNutGiaoDien(type, true);
+            await luuTrangThai(type);
         }
 
-        function hienThiTrangThaiDaKhoa(type, isNewChoice) {
+        function khoaNutGiaoDien(type, isNewClick) {
             const btnYes = document.getElementById("btnYes");
             const btnNo = document.getElementById("btnNo");
             const notify = document.getElementById("notifyText");
@@ -288,16 +298,15 @@
                 btnYes.innerHTML = "✅ Đồng ý ❤️ (Đã chọn)";
                 btnYes.style.background = "#ad1457";
                 btnNo.style.display = "none";
-                notify.innerHTML = isNewChoice ? "Cảm ơn em vì đã đồng ý! ❤️ Chúc hai người một khởi đầu thật đẹp." : "❤️ Phản hồi đã được ghi nhận: Cô ấy đã ĐỒNG Ý!";
+                notify.innerHTML = isNewClick ? "Cảm ơn em vì đã đồng ý! ❤️ Chúc hai người một khởi đầu thật đẹp." : "❤️ Phản hồi: Cô ấy đã ĐỒNG Ý!";
                 notify.style.display = "block";
-                if (isNewChoice) {
-                    setInterval(createHeart, 150);
-                }
+                if (isNewClick) setInterval(createHeart, 150);
             } else if (type === 'no') {
                 btnNo.innerHTML = "✅ Không đồng ý (Đã chọn)";
                 btnNo.style.background = "#9e9e9e";
                 btnYes.style.display = "none";
-                notify.innerHTML = isNewChoice ? "Cảm ơn em đã chia sẻ thật lòng với anh nhé." : "Phản hồi đã được ghi nhận: Không đồng ý.";
+                notify.innerHTML = isNewClick ? "Cảm ơn em đã chia sẻ thật lòng với anh nhé." : "Phản hồi: Không đồng ý.";
+                notify.style.display = "block";
             }
         }
 
